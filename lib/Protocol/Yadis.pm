@@ -3,8 +3,9 @@ use Mouse;
 
 # callbacks
 has http_req_cb => (
-    isa => 'CodeRef',
-    is  => 'rw',
+    required => 1,
+    isa      => 'CodeRef',
+    is       => 'rw',
 );
 
 # attributes
