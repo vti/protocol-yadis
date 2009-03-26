@@ -141,6 +141,7 @@ sub _http_res_on {
     }
 }
 
+# based on HTML::TagParser
 sub _html_tag {
     my $txtref = shift;    # reference
     my $flat   = [];
