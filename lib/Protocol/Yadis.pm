@@ -61,20 +61,23 @@ sub discover {
 
     my $method = $self->head_first ? 'HEAD' : 'GET';
 
-    $self->http_req_cb->($self, $url, $method, $headers,
-        sub {
-            my ($self, $url, $status, $headers, $body) = @_;
+    $self->http_req_cb->(
+        $self, $url, {method => $method, headers => $headers} =>
+          sub {
+            my ($self, $url, $args) = @_;
 
-            $self->_http_res_on($url, $status, $headers, $body);
+            $self->_http_res_on($url, $args);
+
             return $cb->($self, 'error') if $self->error;
+            return $cb->($self, 'ok')    if $self->document;
 
-            return $cb->($self, 'ok') if $self->document;
+            $self->http_req_cb->(
+                $self,
+                $self->resource => {method => 'GET', headers => $headers} =>
+                  sub {
+                    my ($self, $url, $args) = @_;
 
-            $self->http_req_cb->($self, $self->resource, 'GET', $headers,
-                sub {
-                    my ($self, $url, $status, $headers, $body) = @_;
-
-                    $self->_http_res_on($url, $status, $headers, $body);
+                    $self->_http_res_on($url, $args);
 
                     return $cb->($self, 'error') if $self->error;
                     return $cb->($self, 'ok');
@@ -88,7 +91,11 @@ sub discover {
 
 
 sub _http_res_on {
-    my ($self, $url, $status, $headers, $body) = @_;
+    my ($self, $url, $args) = @_;
+
+    my $status  = $args->{status};
+    my $headers = $args->{headers};
+    my $body    = $args->{body};
 
     unless ($status == 200) {
         warn 'Status != 200' if $self->debug;

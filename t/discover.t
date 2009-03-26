@@ -6,7 +6,7 @@ my ($y, $document);
 
 $y = Protocol::Yadis->new(
     http_req_cb => sub {
-        my ($self, $url, $method, $headers, $cb) = @_;
+        my ($self, $url, $args, $cb) = @_;
 
         my $status = 200;
         my $headers = {};
@@ -104,7 +104,8 @@ $y = Protocol::Yadis->new(
             $status = 404;
         }
 
-        $cb->($self, $url, $status, $headers, $body);
+        $cb->($self => $url =>
+              {status => $status, headers => $headers, body => $body});
     }
 );
 
