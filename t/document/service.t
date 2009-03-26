@@ -57,7 +57,7 @@ $s->elements(
             content => 'foo'
         ),
         Protocol::Yadis::Document::Service::Element->new(
-            attrs   => [priority => 1],
+            attrs   => [priority => 0],
             name    => 'URI',
             content => 'foo'
         ),
@@ -67,5 +67,5 @@ $s->elements(
         )
     ]
 );
-is("$s", qq|<Service>\n <Type>foo</Type>\n <URI priority="1">foo</URI>\n <URI priority="4">foo</URI>\n <URI>foo</URI>\n <URI>bar</URI>\n</Service>|);
+is("$s", qq|<Service>\n <Type>foo</Type>\n <URI priority="0">foo</URI>\n <URI priority="4">foo</URI>\n <URI>foo</URI>\n <URI>bar</URI>\n</Service>|);
 

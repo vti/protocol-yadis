@@ -38,8 +38,8 @@ sub elements {
             push @{$self->_elements}, $element;
         }
     } else {
-        my @priority = grep { $_->attr('priority') } @{$self->_elements};
-        my @other    = grep { !$_->attr('priority') } @{$self->_elements};
+        my @priority = grep { defined $_->attr('priority') } @{$self->_elements};
+        my @other    = grep { not defined $_->attr('priority') } @{$self->_elements};
 
         my @sorted =
           sort { $a->attr('priority') cmp $b->attr('priority') } @priority;

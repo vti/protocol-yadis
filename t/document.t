@@ -140,7 +140,7 @@ $d->parse(<<'');
    <URI> http://example.com/1 </URI>
    <URI priority="2"> http://example.com/2 </URI>
    <URI> http://example.com/3 </URI>
-   <URI priority="1"> http://example.com/4 </URI>
+   <URI priority="0"> http://example.com/4 </URI>
   </Service>
  </XRD>
 </xrds:XRDS>
@@ -164,7 +164,7 @@ $d->parse(<<'');
    <Type> http://lid.netmesh.org/sso/3.0 </Type>
    <URI> http://example.com/3 </URI>
   </Service>
-  <Service priority="1">
+  <Service priority="0">
    <Type> http://lid.netmesh.org/sso/3.0 </Type>
    <URI> http://example.com/1 </URI>
   </Service>
