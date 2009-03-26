@@ -29,8 +29,7 @@ has resource => (
 );
 
 has error => (
-    isa     => 'Int',
-    default => 0,
+    isa     => 'Str',
     is      => 'rw',
     clearer => 'clear_error'
 );
@@ -93,7 +92,7 @@ sub _http_res_on {
 
     unless ($status == 200) {
         warn 'Status != 200' if $self->debug;
-        $self->error(1);
+        $self->error("Wrong status response: $status");
         return;
     }
 
@@ -109,14 +108,14 @@ sub _http_res_on {
         if ($headers->{'Content-Type'} eq 'application/xrds+xml') {
             warn 'Found Yadis Document' if $self->debug;
             my $document = Protocol::Yadis::Document->new;
-            return $self->error(1) unless $document->parse($body);
+            return $self->error("Can't parse Yadis Document") unless $document->parse($body);
 
             $self->document($document);
         }
         else {
             warn 'Found HMTL' if $self->debug;
             my ($head) = ($body =~ m/<\s*head\s*>(.*?)<\/\s*head\s*>/is);
-            return $self->error(1) unless $head;
+            return $self->error('No <head> was found') unless $head;
 
             my $location;
             my $tags = _html_tag(\$head);
@@ -132,12 +131,12 @@ sub _http_res_on {
                 last if ($location = $attrs->{content});
             }
             
-            return $self->error(1) unless $location;
+            return $self->error("Can't find location") unless $location;
 
             $self->resource($location);
         }
     } else {
-        $self->error(1);
+        $self->error('No body was found');
     }
 }
 
