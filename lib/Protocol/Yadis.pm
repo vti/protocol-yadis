@@ -143,6 +143,7 @@ sub _http_res_on {
             $self->resource($location);
         }
     } else {
+        warn 'No body was found' if $self->debug;
         $self->error('No body was found');
     }
 }
