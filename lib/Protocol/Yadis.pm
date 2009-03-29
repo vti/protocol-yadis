@@ -105,8 +105,10 @@ sub _http_res_on {
 
     if (my $location = $headers->{'X-XRDS-Location'}) {
         warn 'Found X-XRDS-Location' if $self->debug;
-        $self->resource($location);
-        return;
+
+        # Some nasty providers set X-XRDS-Location even if they give you Yadis
+        # document. Thanks God they put there the same url and we can catch it.
+        return $self->resource($location) unless $location eq $url;
     }
 
     if ($body) {
