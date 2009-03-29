@@ -114,7 +114,7 @@ sub _http_res_on {
     if ($body) {
         warn 'Found body' if $self->debug;
         $headers->{'Content-Type'} ||= '';
-        if ($headers->{'Content-Type'} eq 'application/xrds+xml') {
+        if ($headers->{'Content-Type'} =~ m/^application\/xrds\+xml;?/) {
             warn 'Found Yadis Document' if $self->debug;
             my $document = Protocol::Yadis::Document->new;
             return $self->error("Can't parse Yadis Document") unless $document->parse($body);

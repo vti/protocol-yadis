@@ -1,4 +1,4 @@
-use Test::More tests => 14;
+use Test::More tests => 15;
 
 use Protocol::Yadis;
 
@@ -44,6 +44,22 @@ $y = Protocol::Yadis->new(
   </Service>
   <Service>
    <URI>http://www.livejournal.com/openid/server.bml</URI>
+  </Service>
+ </XRD>
+</xrds:XRDS>
+
+        } elsif ($url eq 'document-with-encoding') {
+            $headers =
+              {'Content-Type' => 'application/xrds+xml; encoding=utf-8',};
+            $body = <<'';
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)"
+   xmlns:openid="http://openid.net/xmlns/1.0">
+ <XRD>
+  <Service priority="10">
+   <Type>http://openid.net/signon/1.0</Type>
+   <URI>http://www.myopenid.com/server</URI>
+   <openid:Delegate>http://smoker.myopenid.com/</openid:Delegate>
   </Service>
  </XRD>
 </xrds:XRDS>
@@ -143,6 +159,9 @@ $y->discover('not-found', sub { is($_[1], 'error') });
 $y->clear;
 
 $y->discover('document', sub { is($_[1], 'ok') });
+$y->clear;
+
+$y->discover('document-with-encoding', sub { is($_[1], 'ok') });
 $y->clear;
 
 $y->discover('document-with-same-location', sub { is($_[1], 'ok') });
