@@ -79,8 +79,8 @@ sub discover {
 
                     $self->_http_res_on($url, $args);
 
-                    return $cb->($self, 'error') if $self->error;
-                    return $cb->($self, 'ok');
+                    return $cb->($self, 'ok') if $self->document;
+                    return $cb->($self, 'error');
                 }
             );
         }

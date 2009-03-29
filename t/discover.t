@@ -1,4 +1,4 @@
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 use Protocol::Yadis;
 
@@ -65,6 +65,8 @@ $y = Protocol::Yadis->new(
             $body = 'foo';
         } elsif ($url eq 'header-location') {
             $headers = {'X-XRDS-Location' => 'document'};
+        } elsif ($url eq 'header-location-recursive') {
+            $headers = {'X-XRDS-Location' => 'header-location'};
         } elsif ($url eq 'header-location-not-found') {
             $headers = {'X-XRDS-Location' => 'not-found'};
         } elsif ($url eq 'html-location') {
@@ -138,6 +140,9 @@ $y->discover('header-location', sub { is($_[1], 'ok') });
 $y->clear;
 
 $y->discover('header-location-not-found', sub { is($_[1], 'error') });
+$y->clear;
+
+$y->discover('header-location-recursive', sub { is($_[1], 'error') });
 $y->clear;
 
 $y->discover('html-location', sub { is($_[1], 'ok') });
