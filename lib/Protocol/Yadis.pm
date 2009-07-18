@@ -1,5 +1,5 @@
 package Protocol::Yadis;
-use Mouse;
+use Any::Moose;
 
 # callbacks
 has http_req_cb => (
@@ -62,22 +62,20 @@ sub discover {
     my $method = $self->head_first ? 'HEAD' : 'GET';
 
     $self->http_req_cb->(
-        $self, $url, {method => $method, headers => $headers} =>
+        $self, $url, $method, $headers, '' =>
           sub {
-            my ($self, $url, $args) = @_;
+            my ($self, $status, $headers, $body) = @_;
 
-            $self->_http_res_on($url, $args);
+            $self->_http_res_on($url, $status, $headers, $body);
 
             return $cb->($self, 'error') if $self->error;
             return $cb->($self, 'ok')    if $self->document;
 
             $self->http_req_cb->(
-                $self,
-                $self->resource => {method => 'GET', headers => $headers} =>
-                  sub {
-                    my ($self, $url, $args) = @_;
+                $self, $self->resource, 'GET', $headers, '' => sub {
+                    my ($self, $status, $headers, $body) = @_;
 
-                    $self->_http_res_on($url, $args);
+                    $self->_http_res_on($url, $status, $headers, $body);
 
                     return $cb->($self, 'ok') if $self->document;
                     return $cb->($self, 'error');
@@ -91,11 +89,7 @@ sub discover {
 
 
 sub _http_res_on {
-    my ($self, $url, $args) = @_;
-
-    my $status  = $args->{status};
-    my $headers = $args->{headers};
-    my $body    = $args->{body};
+    my ($self, $url, $status, $headers, $body) = @_;
 
     unless ($status == 200) {
         warn 'Status != 200' if $self->debug;
@@ -139,7 +133,7 @@ sub _http_res_on {
 
                 last if ($location = $attrs->{content});
             }
-            
+
             return $self->error("Can't find location") unless $location;
 
             $self->resource($location);

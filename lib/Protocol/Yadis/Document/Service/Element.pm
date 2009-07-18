@@ -1,5 +1,5 @@
 package Protocol::Yadis::Document::Service::Element;
-use Mouse;
+use Any::Moose;
 
 use overload '""' => sub { shift->to_string }, fallback => 1;
 

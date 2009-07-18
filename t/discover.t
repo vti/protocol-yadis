@@ -6,11 +6,9 @@ my ($y, $document);
 
 $y = Protocol::Yadis->new(
     http_req_cb => sub {
-        my ($self, $url, $args, $cb) = @_;
+        my ($self, $url, $method, $headers, $body, $cb) = @_;
 
         my $status = 200;
-        my $headers = {};
-        my $body;
 
         if ($url eq 'document') {
             $headers = {'Content-Type' => 'application/xrds+xml'};
@@ -150,8 +148,7 @@ $y = Protocol::Yadis->new(
             $status = 404;
         }
 
-        $cb->($self => $url =>
-              {status => $status, headers => $headers, body => $body});
+        $cb->($self, $status, $headers, $body);
     }
 );
 
