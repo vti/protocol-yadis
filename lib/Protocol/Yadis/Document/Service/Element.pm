@@ -65,3 +65,55 @@ sub to_string {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Protocol::Yadis::Document::Service::Element - Yadis::Protocol::Document::Service element object
+
+=head1 SYNOPSIS
+
+    my $e = Protocol::Yadis::Document::Service::Element->new;
+
+    $e->name('Type');
+    $e->attrs([a => 'b', c => 'd']);
+    $e->content('foo');
+
+    # <Type a="b" c="d">foo</Type>
+
+=head1 DESCRIPTION
+
+This is an element object for L<Protocol::Yadis::Document::Service>.
+
+=head1 ATTRIBUTES
+
+=head2 C<name>
+
+Element name.
+
+=head2 C<content>
+
+Element content.
+
+=head1 METHODS
+
+=head2 C<attr>
+
+Sets/gets element attributes.
+
+=head2 C<to_string>
+
+String representation.
+
+=head1 AUTHOR
+
+Viacheslav Tikhanovskii, C<vti@cpan.org>.
+
+=head1 COPYRIGHT
+
+Copyright (C) 2009, Viacheslav Tikhanovskii.
+
+This program is free software, you can redistribute it and/or modify it under
+the same terms as Perl 5.10.
+
+=cut

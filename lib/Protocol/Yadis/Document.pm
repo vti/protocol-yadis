@@ -51,8 +51,6 @@ sub parse {
     eval {$doc = $parser->parse_string($document); };
     return if $@;
 
-    use Data::Dumper;
-
     # Get XRDS
     my $xrds = shift @{$doc->getElementsByTagName('xrds:XRDS')};
 
@@ -119,3 +117,57 @@ sub to_string {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Protocol::Yadis::Document - Protocol::Yadis document object
+
+=head1 SYNOPSIS
+
+    my $d = Protocol::Yadis::Document->parse(<<EOD);
+        <?xml version="1.0" encoding="UTF-8"?>
+        <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
+         <XRD>
+          <Service>
+           <Type> http://lid.netmesh.org/sso/2.0 </Type>
+          </Service>
+          <Service>
+           <Type> http://lid.netmesh.org/sso/1.0 </Type>
+          </Service>
+         </XRD>
+        </xrds:XRDS>
+    EOD
+
+    my $services = $d->services;
+
+=head1 DESCRIPTION
+
+This is a document object for L<Yadis::Protocol>.
+
+=head1 METHODS
+
+=head2 C<services>
+
+Returns discovered Yadis services.
+
+=head2 C<parse>
+
+Parses XML document.
+
+=head2 C<to_string>
+
+String representation.
+
+=head1 AUTHOR
+
+Viacheslav Tikhanovskii, C<vti@cpan.org>.
+
+=head1 COPYRIGHT
+
+Copyright (C) 2009, Viacheslav Tikhanovskii.
+
+This program is free software, you can redistribute it and/or modify it under
+the same terms as Perl 5.10.
+
+=cut

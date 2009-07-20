@@ -37,21 +37,24 @@ sub elements {
         foreach my $element (@{$_[0]}) {
             push @{$self->_elements}, $element;
         }
-    } else {
-        my @priority = grep { defined $_->attr('priority') } @{$self->_elements};
-        my @other    = grep { not defined $_->attr('priority') } @{$self->_elements};
+    }
+    else {
+        my @priority =
+          grep { defined $_->attr('priority') } @{$self->_elements};
+        my @other =
+          grep { not defined $_->attr('priority') } @{$self->_elements};
 
         my @sorted =
           sort { $a->attr('priority') cmp $b->attr('priority') } @priority;
         push @sorted, @other;
 
-        return [sort {$a->name cmp $b->name} @sorted];
+        return [sort { $a->name cmp $b->name } @sorted];
     }
 }
 
 sub attr {
-    my $self  = shift;
-    my $name  = shift;
+    my $self = shift;
+    my $name = shift;
     return unless $name;
 
     my $attrs = $self->attrs;
@@ -98,3 +101,90 @@ sub to_string {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Protocol::Yadis::Document::Service - Yadis::Protocol::Document service object
+
+=head1 SYNOPSIS
+
+    my $s = Protocol::Yadis::Document::Service->new;
+
+    $s->attr(priority => 4);
+    $s->elements(
+        [   Protocol::Yadis::Document::Service::Element->new(
+                name     => 'URI',
+                content  => 'foo'
+                attrs    => [priority => 0]
+            ),
+            Protocol::Yadis::Document::Service::Element->new(
+                name     => 'URI',
+                content  => 'foo'
+                attrs    => [priority => 4]
+            ),
+            Protocol::Yadis::Document::Service::Element->new(
+                name    => 'Type',
+                content => 'bar'
+            ),
+            Protocol::Yadis::Document::Service::Element->new(
+                name    => 'URI',
+                content => 'baz'
+            )
+        ]
+    );
+
+    # <Service>
+    #   <Type>foo</Type>
+    #   <URI priority="0">foo</URI>
+    #   <URI priority="4">foo</URI>
+    #   <URI>bar</URI>
+    #   <URI>baz</URI>
+    # </Service>
+
+=head1 DESCRIPTION
+
+This is a service object for L<Protocol::Yadis::Document>.
+
+=head1 ATTRIBUTES
+
+=head2 C<http_req_cb>
+
+=head1 METHODS
+
+=head2 C<element>
+
+Gets element by name.
+
+=head2 C<Type>
+
+Shortcut for getting Type element.
+
+=head2 C<URI>
+
+Shortcut for getting URI element.
+
+=head2 C<elements>
+
+Gets/sets elements.
+
+=head2 C<attr>
+
+Gets/sets service attributes.
+
+=head2 C<to_string>
+
+String representation.
+
+=head1 AUTHOR
+
+Viacheslav Tikhanovskii, C<vti@cpan.org>.
+
+=head1 COPYRIGHT
+
+Copyright (C) 2009, Viacheslav Tikhanovskii.
+
+This program is free software, you can redistribute it and/or modify it under
+the same terms as Perl 5.10.
+
+=cut

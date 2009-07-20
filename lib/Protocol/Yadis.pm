@@ -1,6 +1,8 @@
 package Protocol::Yadis;
 use Any::Moose;
 
+our $VERSION = '0.500';
+
 # callbacks
 has http_req_cb => (
     required => 1,
@@ -16,8 +18,8 @@ has head_first => (
 );
 
 has _resource => (
-    isa     => 'Str',
-    is      => 'rw'
+    isa => 'Str',
+    is  => 'rw'
 );
 
 has error => (
@@ -43,6 +45,7 @@ sub discover {
     my $method = $self->head_first ? 'HEAD' : 'GET';
 
     $self->_resource('');
+    $self->error('');
 
     if ($method eq 'GET') {
         return $self->_initial_req($url, sub { $cb->(@_) });
@@ -63,6 +66,23 @@ sub discover {
     }
 }
 
+sub _parse_document {
+    my $self = shift;
+    my ($headers, $body) = @_;
+
+    my $content_type = $headers->{'Content-Type'};
+
+    if (   $content_type
+        && $content_type =~ m/^(?:application\/xrds\+xml|text\/xml);?/)
+    {
+        my $document = Protocol::Yadis::Document->parse($body);
+
+        return $document if $document;
+    }
+
+    return;
+}
+
 sub _initial_req {
     my $self = shift;
     my ($url, $cb) = @_;
@@ -75,25 +95,9 @@ sub _initial_req {
 
             return $cb->($self) unless $self->_resource;
 
-            return $self->_second_req(
-                $self->_resource => sub { $cb->(@_); });
+            return $self->_second_req($self->_resource => sub { $cb->(@_); });
         }
     );
-}
-
-sub _parse_document {
-    my $self = shift;
-    my ($headers, $body) = @_;
-
-    if ($headers->{'Content-Type'}
-        =~ m/^(?:application\/xrds\+xml|text\/xml);?/)
-    {
-        my $document = Protocol::Yadis::Document->parse($body);
-
-        return $document if $document;
-    }
-
-    return;
 }
 
 sub _initial_head_req {
@@ -104,7 +108,8 @@ sub _initial_head_req {
 
     $self->http_req_cb->(
         $url, 'HEAD',
-        $self->_headers, undef => sub {
+        $self->_headers,
+        undef => sub {
             my ($url, $status, $headers, $body) = @_;
 
             return $cb->($self) unless $status && $status == 200;
@@ -130,12 +135,12 @@ sub _initial_get_req {
 
     $self->http_req_cb->(
         $url, 'GET',
-        $self->_headers, undef => sub {
+        $self->_headers,
+        undef => sub {
             my ($url, $status, $headers, $body) = @_;
 
             warn 'after user callback' if $self->debug;
 
-            warn "status=$status";
             return $cb->($self) unless $status && $status == 200;
 
             warn 'status is ok' if $self->debug;
@@ -200,7 +205,8 @@ sub _second_req {
 
     $self->http_req_cb->(
         $url, 'GET',
-        $self->_headers, undef => sub {
+        $self->_headers,
+        undef => sub {
             my ($url, $status, $headers, $body) = @_;
 
             return $cb->($self) unless $status && $status == 200;
@@ -267,3 +273,130 @@ sub _html_tag {
 }
 
 1;
+__END__
+
+=head1 NAME
+
+Protocol::Yadis - Asynchronous Yadis implementation
+
+=head1 SYNOPSIS
+
+    my $y = Protocol::Yadis->new(
+        http_req_cb => sub {
+            my ($url, $method, $headers, $body, $cb) = @_;
+
+            ...
+
+            $cb->($url, $status, $headers, $body);
+        }
+    );
+
+    $y->discover(
+        $url => sub {
+            my ($self, $document) = @_;
+
+            if ($document) {
+                my $services = $document->services;
+
+                ...
+            }
+            else {
+                die 'error';
+            }
+        }
+    );
+
+=head1 DESCRIPTION
+
+This is an asynchronous lightweight but full Yadis implementation.
+
+=head1 ATTRIBUTES
+
+=head2 C<http_req_cb>
+
+    my $y = Protocol::Yadis->new(
+        http_req_cb => sub {
+            my ($url, $method, $headers, $body, $cb) = @_;
+
+            ...
+
+            $cb->($url, $status, $headers, $body);
+        }
+    );
+
+This is a required callback that is used to download documents from the network.
+Don't forget, that redirects can occur. This callback must handle them properly.
+That is why after finishing downloading, callback must be called with the final
+$url.
+
+Arguments that are passed to the request callback
+
+=over
+
+=item * B<url> url where to start Yadis discovery
+
+=item * B<method> request method
+
+=item * B<headers> request headers
+
+=item * B<body> request body
+
+=item * B<cb> callback that must be called after download was completed
+
+=back
+
+Arguments that must be passed to the response callback
+
+=over
+
+=item * B<url> url from where the document was downloaded
+
+=item * B<status> response status
+
+=item * B<headers> response headers
+
+=item * B<body> response body
+
+=back
+
+=head2 C<head_first>
+
+Do HEAD request first. Disabled by default.
+
+=head1 METHODS
+
+=head2 C<discover>
+
+    $y->discover(
+        $url => sub {
+            my ($self, $document) = @_;
+
+            if ($document) {
+                my $services = $document->services;
+
+                ...
+            }
+            else {
+                die 'error';
+            }
+        }
+    );
+
+Discover Yadis document at the url provided. Callback is called when discovery
+was finished. If no document was passed there was an error during discovery.
+
+If a Yadis document was discovered you get L<Protocol::Yadis::Document> instance
+containing all the services.
+
+=head1 AUTHOR
+
+Viacheslav Tikhanovskii, C<vti@cpan.org>.
+
+=head1 COPYRIGHT
+
+Copyright (C) 2009, Viacheslav Tikhanovskii.
+
+This program is free software, you can redistribute it and/or modify it under
+the same terms as Perl 5.10.
+
+=cut
