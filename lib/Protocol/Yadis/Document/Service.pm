@@ -105,7 +105,7 @@ __END__
 
 =head1 NAME
 
-Protocol::Yadis::Document::Service - Yadis::Protocol::Document service object
+Protocol::Yadis::Document::Service - Protocol::Yadis::Document service object
 
 =head1 SYNOPSIS
 

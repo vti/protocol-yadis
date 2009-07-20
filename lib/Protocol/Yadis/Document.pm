@@ -143,7 +143,7 @@ Protocol::Yadis::Document - Protocol::Yadis document object
 
 =head1 DESCRIPTION
 
-This is a document object for L<Yadis::Protocol>.
+This is a document object for L<Protocol::Yadis>.
 
 =head1 METHODS
 
