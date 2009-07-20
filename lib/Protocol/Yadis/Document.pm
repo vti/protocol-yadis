@@ -21,9 +21,12 @@ sub services {
         $self->_services([]);
 
         return $self;
-    } else {
-        my @priority = grep { defined $_->attr('priority') } @{$self->_services};
-        my @other    = grep { not defined $_->attr('priority') } @{$self->_services};
+    }
+    else {
+        my @priority =
+          grep { defined $_->attr('priority') } @{$self->_services};
+        my @other =
+          grep { not defined $_->attr('priority') } @{$self->_services};
 
         my @sorted =
           sort { $a->attr('priority') cmp $b->attr('priority') } @priority;
@@ -36,8 +39,10 @@ sub services {
 }
 
 sub parse {
-    my $self = shift;
+    my $class = shift;
     my $document = shift;
+
+    my $self = $class->new;
 
     return unless $document;
 

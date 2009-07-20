@@ -10,28 +10,19 @@ has http_req_cb => (
 
 # attributes
 has head_first => (
-    isa     => 'Int',
+    isa     => 'Bool',
     is      => 'rw',
-    default => 0,
-    clearer => 'clear_head_first'
+    default => 0
 );
 
-has document => (
-    isa => 'Protocol::Yadis::Document',
-    is  => 'rw',
-    clearer => 'clear_document'
-);
-
-has resource => (
-    isa => 'Str',
-    is  => 'rw',
-    clearer => 'clear_resource'
+has _resource => (
+    isa     => 'Str',
+    is      => 'rw'
 );
 
 has error => (
-    isa     => 'Str',
-    is      => 'rw',
-    clearer => 'clear_error'
+    isa => 'Str',
+    is  => 'rw'
 );
 
 # debugging
@@ -43,105 +34,185 @@ has debug => (
 
 use Protocol::Yadis::Document;
 
-sub clear {
-    my $self = shift;
-
-    $self->clear_head_first;
-    $self->clear_document;
-    $self->clear_resource;
-    $self->clear_error;
-}
+sub _headers { {'Accept' => 'application/xrds+xml'} }
 
 sub discover {
     my $self = shift;
-    my $url  = shift;
-    my $cb   = shift;
-
-    my $headers = {'Accept' => 'application/xrds+xml'};
+    my ($url, $cb) = @_;
 
     my $method = $self->head_first ? 'HEAD' : 'GET';
 
-    $self->http_req_cb->(
-        $self, $url, $method, $headers, '' =>
-          sub {
-            my ($self, $status, $headers, $body) = @_;
+    $self->_resource('');
 
-            $self->_http_res_on($url, $status, $headers, $body);
+    if ($method eq 'GET') {
+        return $self->_initial_req($url, sub { $cb->(@_) });
+    }
+    else {
+        $self->_initial_head_req(
+            $url => sub {
+                my ($self, $retry) = @_;
 
-            return $cb->($self, 'error') if $self->error;
-            return $cb->($self, 'ok')    if $self->document;
+                return $self->_initial_req($url, sub { $cb->(@_) }) if $retry;
 
-            $self->http_req_cb->(
-                $self, $self->resource, 'GET', $headers, '' => sub {
-                    my ($self, $status, $headers, $body) = @_;
+                return $cb->($self) unless $self->_resource;
 
-                    $self->_http_res_on($url, $status, $headers, $body);
+                return $self->_second_req(
+                    $self->_resource => sub { $cb->(@_); });
+            }
+        );
+    }
+}
 
-                    return $cb->($self, 'ok') if $self->document;
-                    return $cb->($self, 'error');
-                }
-            );
+sub _initial_req {
+    my $self = shift;
+    my ($url, $cb) = @_;
+
+    $self->_initial_get_req(
+        $url => sub {
+            my ($self, $document) = @_;
+
+            return $cb->($self, $document) if $document;
+
+            return $cb->($self) unless $self->_resource;
+
+            return $self->_second_req(
+                $self->_resource => sub { $cb->(@_); });
         }
     );
+}
+
+sub _parse_document {
+    my $self = shift;
+    my ($headers, $body) = @_;
+
+    if ($headers->{'Content-Type'}
+        =~ m/^(?:application\/xrds\+xml|text\/xml);?/)
+    {
+        my $document = Protocol::Yadis::Document->parse($body);
+
+        return $document if $document;
+    }
 
     return;
 }
 
+sub _initial_head_req {
+    my $self = shift;
+    my ($url, $cb) = @_;
 
-sub _http_res_on {
-    my ($self, $url, $status, $headers, $body) = @_;
+    warn 'HEAD request' if $self->debug;
 
-    unless ($status == 200) {
-        warn 'Status != 200' if $self->debug;
-        $self->error("Wrong status response: $status");
-        return;
-    }
+    $self->http_req_cb->(
+        $url, 'HEAD',
+        $self->_headers, undef => sub {
+            my ($url, $status, $headers, $body) = @_;
 
-    if (my $location = $headers->{'X-XRDS-Location'}) {
-        warn 'Found X-XRDS-Location' if $self->debug;
+            return $cb->($self) unless $status && $status == 200;
 
-        # Some nasty providers set X-XRDS-Location even if they give you Yadis
-        # document. Thanks God they put there the same url and we can catch it.
-        return $self->resource($location) unless $location eq $url;
-    }
+            if (my $location = $headers->{'X-XRDS-Location'}) {
+                warn 'Found X-XRDS-Location' if $self->debug;
 
-    if ($body) {
-        warn 'Found body' if $self->debug;
-        $headers->{'Content-Type'} ||= '';
-        if ($headers->{'Content-Type'} =~ m/^application\/xrds\+xml;?/) {
-            warn 'Found Yadis Document' if $self->debug;
-            my $document = Protocol::Yadis::Document->new;
-            return $self->error("Can't parse Yadis Document") unless $document->parse($body);
+                $self->_resource($location);
 
-            $self->document($document);
-        }
-        else {
-            warn 'Found HMTL' if $self->debug;
-            my ($head) = ($body =~ m/<\s*head\s*>(.*?)<\/\s*head\s*>/is);
-            return $self->error('No <head> was found') unless $head;
-
-            my $location;
-            my $tags = _html_tag(\$head);
-            foreach my $tag (@$tags) {
-                next unless $tag->{name} eq 'meta';
-
-                my $attrs = $tag->{attrs};
-                next
-                  unless %$attrs
-                      && $attrs->{'http-equiv'}
-                      && $attrs->{'http-equiv'} =~ m/^X-XRDS-Location$/i;
-
-                last if ($location = $attrs->{content});
+                return $cb->($self);
             }
 
-            return $self->error("Can't find location") unless $location;
-
-            $self->resource($location);
+            $cb->($self, 1);
         }
-    } else {
-        warn 'No body was found' if $self->debug;
-        $self->error('No body was found');
-    }
+    );
+}
+
+sub _initial_get_req {
+    my $self = shift;
+    my ($url, $cb) = @_;
+
+    warn 'GET request' if $self->debug;
+
+    $self->http_req_cb->(
+        $url, 'GET',
+        $self->_headers, undef => sub {
+            my ($url, $status, $headers, $body) = @_;
+
+            warn 'after user callback' if $self->debug;
+
+            warn "status=$status";
+            return $cb->($self) unless $status && $status == 200;
+
+            warn 'status is ok' if $self->debug;
+
+            if (my $location = $headers->{'X-XRDS-Location'}) {
+                warn 'Found X-XRDS-Location' if $self->debug;
+
+                $self->_resource($location);
+
+                if ($body) {
+                    warn 'Found body' if $self->debug;
+
+                    my $document = $self->_parse_document($headers, $body);
+
+                    return $cb->($self, $document) if $document;
+                }
+
+                warn 'no yadis was found' if $self->debug;
+
+                return $cb->($self);
+            }
+
+            warn 'No X-XRDS-Location header was found' if $self->debug;
+
+            if ($body) {
+                my $document = $self->_parse_document($headers, $body);
+                return $cb->($self, $document) if $document;
+
+                warn 'Found HMTL' if $self->debug;
+                my ($head) = ($body =~ m/<\s*head\s*>(.*?)<\/\s*head\s*>/is);
+                return $cb->($self) unless $head;
+
+                my $location;
+                my $tags = _html_tag(\$head);
+                foreach my $tag (@$tags) {
+                    next unless $tag->{name} eq 'meta';
+
+                    my $attrs = $tag->{attrs};
+                    next
+                      unless %$attrs
+                          && $attrs->{'http-equiv'}
+                          && $attrs->{'http-equiv'} =~ m/^X-XRDS-Location$/i;
+
+                    last if ($location = $attrs->{content});
+                }
+
+                $self->_resource($location) if $location;
+            }
+
+            warn 'no body was found' if $self->debug;
+
+            return $cb->($self);
+        }
+    );
+}
+
+sub _second_req {
+    my $self = shift;
+    my ($url, $cb) = @_;
+
+    warn 'Second GET request' if $self->debug;
+
+    $self->http_req_cb->(
+        $url, 'GET',
+        $self->_headers, undef => sub {
+            my ($url, $status, $headers, $body) = @_;
+
+            return $cb->($self) unless $status && $status == 200;
+
+            return $cb->($self) unless $body;
+
+            my $document = $self->_parse_document($headers, $body);
+            return $cb->($self, $document) if $document;
+
+            rerturn $cb->($self);
+        }
+    );
 }
 
 # based on HTML::TagParser
@@ -154,7 +225,7 @@ sub _html_tag {
         ^(?:[^<]*) < (?:
             ( / )? ( [^/!<>\s"'=]+ )
             ( (?:"[^"]*"|'[^']*'|[^"'<>])+ )?
-        |   
+        |
             (!-- .*? -- | ![^\-] .*? )
         ) \/?> ([^<]*)
     }{}sxg
@@ -174,7 +245,8 @@ sub _html_tag {
                     my $quote = $1;
                     $attr =~ s/^$quote(.*?)$quote//s;
                     $value = $1;
-                } else {
+                }
+                else {
                     $attr =~ s/^(.*?)\s*//s;
                     $value = $1;
                 }

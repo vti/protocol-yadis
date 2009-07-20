@@ -2,18 +2,16 @@ use Test::More tests => 37;
 
 use Protocol::Yadis::Document;
 
-my $d = Protocol::Yadis::Document->new;
+my $d = Protocol::Yadis::Document->parse;
+ok(not defined);
 
-$d->parse;
-is_deeply($d->services, []);
+$d = Protocol::Yadis::Document->parse('');
+ok(not defined);
 
-$d->parse('');
-is_deeply($d->services, []);
+$d = Protocol::Yadis::Document->parse('<asdasd');
+ok(not defined);
 
-$d->parse('<asdasd');
-is_deeply($d->services, []);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -29,7 +27,7 @@ $d->parse(<<'');
 is($d->services->[0]->Type->[0]->content, 'http://lid.netmesh.org/sso/2.0');
 is($d->services->[1]->Type->[0]->content, 'http://lid.netmesh.org/sso/1.0');
 
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -53,9 +51,7 @@ $d->parse(<<'');
 is($d->services->[0]->Type->[0]->content, 'http://lid.netmesh.org/sso/2.0');
 is($d->services->[1]->Type->[0]->content, 'http://lid.netmesh.org/sso/1.0');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <ABC>
@@ -74,9 +70,7 @@ $d->parse(<<'');
 is($d->services->[0]->Type->[0]->content, 'http://lid.netmesh.org/sso/3.0');
 is($d->services->[1]->Type->[0]->content, 'http://lid.netmesh.org/sso/4.0');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -87,7 +81,7 @@ is(scalar @{$d->services}, 0);
 
 $d->services([]);
 
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -108,9 +102,7 @@ is($d->services->[0]->Type->[1]->content, 'http://lid.netmesh.org/sso/4.0');
 is($d->services->[0]->Type->[2]->content, 'http://lid.netmesh.org/sso/5.0');
 is($d->services->[0]->Type->[3]->content, 'http://lid.netmesh.org/sso/6.0');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -129,9 +121,7 @@ is($d->services->[0]->URI->[1]->content, 'http://example.com/2');
 is($d->services->[0]->URI->[2]->content, 'http://example.com/3');
 is($d->services->[0]->URI->[3]->content, 'http://example.com/4');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -150,9 +140,7 @@ is($d->services->[0]->URI->[1]->content, 'http://example.com/2');
 is($d->services->[0]->URI->[2]->content, 'http://example.com/1');
 is($d->services->[0]->URI->[3]->content, 'http://example.com/3');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -175,9 +163,7 @@ is($d->services->[0]->URI->[0]->content, 'http://example.com/1');
 is($d->services->[1]->URI->[0]->content, 'http://www.myopenid.com/server');
 is($d->services->[2]->URI->[0]->content, 'http://example.com/3');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)"
    xmlns:openid="http://openid.net/xmlns/1.0">
@@ -220,9 +206,7 @@ is($d->services->[1]->Type->[0]->content, 'http://lid.netmesh.org/sso/2.0');
 
 is($d->services->[2]->URI->[0]->content, 'http://www.livejournal.com/openid/server.bml');
 
-$d->services([]);
-
-$d->parse(<<'');
+$d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
 <xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
  <XRD>
@@ -259,8 +243,7 @@ $d->parse(<<'');
 
 
 my $document = "$d";
-$d->services([]);
-$d->parse($document);
+$d = Protocol::Yadis::Document->parse($document);
 
 is(@{$d->services}, 8);
 is($d->services->[0]->attr('priority'), 10);
