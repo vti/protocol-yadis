@@ -1,25 +1,26 @@
 package Protocol::Yadis::Document::Service::Element;
-use Any::Moose;
+
+use strict;
+use warnings;
 
 use overload '""' => sub { shift->to_string }, fallback => 1;
 
-has name => (
-    isa     => 'Str',
-    is      => 'rw',
-    default => ''
-);
+sub new {
+    my $class = shift;
 
-has content => (
-    isa     => 'Str',
-    is      => 'rw',
-    default => ''
-);
+    my $self = {@_};
+    bless $self, $class;
 
-has attrs => (
-    isa     => 'ArrayRef[Str]',
-    is      => 'rw',
-    default => sub { [] }
-);
+    $self->{name}    ||= '';
+    $self->{content} ||= '';
+    $self->{attrs}   ||= [];
+
+    return $self;
+}
+
+sub name    { defined $_[1] ? $_[0]->{name}    = $_[1] : $_[0]->{name} }
+sub content { defined $_[1] ? $_[0]->{content} = $_[1] : $_[0]->{content} }
+sub attrs   { defined $_[1] ? $_[0]->{attrs}   = $_[1] : $_[0]->{attrs} }
 
 sub attr {
     my $self  = shift;
@@ -97,9 +98,17 @@ Element content.
 
 =head1 METHODS
 
-=head2 C<attr>
+=head2 C<new>
+
+Creates a new L<Protocol::Yadis::Document::Service::Element> instance.
+
+=head2 C<attrs>
 
 Sets/gets element attributes.
+
+=head2 C<attr>
+
+Sets/gets element attribute.
 
 =head2 C<to_string>
 

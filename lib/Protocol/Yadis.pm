@@ -1,42 +1,33 @@
 package Protocol::Yadis;
-use Any::Moose;
 
-our $VERSION = '0.500';
+use strict;
+use warnings;
 
-# callbacks
-has http_req_cb => (
-    required => 1,
-    isa      => 'CodeRef',
-    is       => 'rw',
-);
+require Carp;
 
-# attributes
-has head_first => (
-    isa     => 'Bool',
-    is      => 'rw',
-    default => 0
-);
+our $VERSION = '0.501';
 
-has _resource => (
-    isa => 'Str',
-    is  => 'rw'
-);
+use constant DEBUG => $ENV{PROTOCOL_YADIS_DEBUG} || 0;
 
-has error => (
-    isa => 'Str',
-    is  => 'rw'
-);
+sub new {
+    my $class = shift;
+    my %param = @_;
 
-# debugging
-has debug => (
-    isa     => 'Int',
-    is      => 'rw',
-    default => sub { $ENV{PROTOCOL_YADIS_DEBUG} || 0 }
-);
+    my $self = {@_};
+    bless $self, $class;
+
+    Carp::croak('http_req_cb is required') unless $self->{http_req_cb};
+
+    $self->{_headers} = {'Accept' => 'application/xrds+xml'};
+
+    return $self;
+}
+
+sub http_req_cb { shift->{http_req_cb} }
+sub head_first  { shift->{head_first} }
+sub error       { defined $_[1] ? $_[0]->{error} = $_[1] : $_[0]->{error} }
 
 use Protocol::Yadis::Document;
-
-sub _headers { {'Accept' => 'application/xrds+xml'} }
 
 sub discover {
     my $self = shift;
@@ -44,7 +35,7 @@ sub discover {
 
     my $method = $self->head_first ? 'HEAD' : 'GET';
 
-    $self->_resource('');
+    $self->{_resource} = '';
     $self->error('');
 
     if ($method eq 'GET') {
@@ -57,10 +48,10 @@ sub discover {
 
                 return $self->_initial_req($url, sub { $cb->(@_) }) if $retry;
 
-                return $cb->($self) unless $self->_resource;
+                return $cb->($self) unless $self->{_resource};
 
                 return $self->_second_req(
-                    $self->_resource => sub { $cb->(@_); });
+                    $self->{_resource} => sub { $cb->(@_); });
             }
         );
     }
@@ -93,9 +84,9 @@ sub _initial_req {
 
             return $cb->($self, $document) if $document;
 
-            return $cb->($self) unless $self->_resource;
+            return $cb->($self) unless $self->{_resource};
 
-            return $self->_second_req($self->_resource => sub { $cb->(@_); });
+            return $self->_second_req($self->{_resource} => sub { $cb->(@_); });
         }
     );
 }
@@ -104,20 +95,20 @@ sub _initial_head_req {
     my $self = shift;
     my ($url, $cb) = @_;
 
-    warn 'HEAD request' if $self->debug;
+    warn 'HEAD request' if DEBUG;
 
     $self->http_req_cb->(
         $url, 'HEAD',
-        $self->_headers,
+        $self->{_headers},
         undef => sub {
             my ($url, $status, $headers, $body) = @_;
 
             return $cb->($self) unless $status && $status == 200;
 
             if (my $location = $headers->{'X-XRDS-Location'}) {
-                warn 'Found X-XRDS-Location' if $self->debug;
+                warn 'Found X-XRDS-Location' if DEBUG;
 
-                $self->_resource($location);
+                $self->{_resource} = $location;
 
                 return $cb->($self);
             }
@@ -131,45 +122,45 @@ sub _initial_get_req {
     my $self = shift;
     my ($url, $cb) = @_;
 
-    warn 'GET request' if $self->debug;
+    warn 'GET request' if DEBUG;
 
     $self->http_req_cb->(
         $url, 'GET',
-        $self->_headers,
+        $self->{_headers},
         undef => sub {
             my ($url, $status, $headers, $body) = @_;
 
-            warn 'after user callback' if $self->debug;
+            warn 'after user callback' if DEBUG;
 
             return $cb->($self) unless $status && $status == 200;
 
-            warn 'status is ok' if $self->debug;
+            warn 'status is ok' if DEBUG;
 
             if (my $location = $headers->{'X-XRDS-Location'}) {
-                warn 'Found X-XRDS-Location' if $self->debug;
+                warn 'Found X-XRDS-Location' if DEBUG;
 
-                $self->_resource($location);
+                $self->{_resource} = $location;
 
                 if ($body) {
-                    warn 'Found body' if $self->debug;
+                    warn 'Found body' if DEBUG;
 
                     my $document = $self->_parse_document($headers, $body);
 
                     return $cb->($self, $document) if $document;
                 }
 
-                warn 'no yadis was found' if $self->debug;
+                warn 'no yadis was found' if DEBUG;
 
                 return $cb->($self);
             }
 
-            warn 'No X-XRDS-Location header was found' if $self->debug;
+            warn 'No X-XRDS-Location header was found' if DEBUG;
 
             if ($body) {
                 my $document = $self->_parse_document($headers, $body);
                 return $cb->($self, $document) if $document;
 
-                warn 'Found HMTL' if $self->debug;
+                warn 'Found HMTL' if DEBUG;
                 my ($head) = ($body =~ m/<\s*head\s*>(.*?)<\/\s*head\s*>/is);
                 return $cb->($self) unless $head;
 
@@ -187,10 +178,10 @@ sub _initial_get_req {
                     last if ($location = $attrs->{content});
                 }
 
-                $self->_resource($location) if $location;
+                $self->{_resource} = $location if $location;
             }
 
-            warn 'no body was found' if $self->debug;
+            warn 'no body was found' if DEBUG;
 
             return $cb->($self);
         }
@@ -201,11 +192,11 @@ sub _second_req {
     my $self = shift;
     my ($url, $cb) = @_;
 
-    warn 'Second GET request' if $self->debug;
+    warn 'Second GET request' if DEBUG;
 
     $self->http_req_cb->(
         $url, 'GET',
-        $self->_headers,
+        $self->{_headers},
         undef => sub {
             my ($url, $status, $headers, $body) = @_;
 
@@ -365,6 +356,10 @@ Do HEAD request first. Disabled by default.
 
 =head1 METHODS
 
+=head2 C<new>
+
+Creates a new L<Protocol::Yadis> instance.
+
 =head2 C<discover>
 
     $y->discover(
@@ -387,6 +382,10 @@ was finished. If no document was passed there was an error during discovery.
 
 If a Yadis document was discovered you get L<Protocol::Yadis::Document> instance
 containing all the services.
+
+=head2 C<error>
+
+Returns last error.
 
 =head1 AUTHOR
 

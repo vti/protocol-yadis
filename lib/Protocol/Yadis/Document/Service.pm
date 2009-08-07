@@ -1,19 +1,23 @@
 package Protocol::Yadis::Document::Service;
-use Any::Moose;
+
+use strict;
+use warnings;
 
 use overload '""' => sub { shift->to_string }, fallback => 1;
 
-has attrs => (
-    isa     => 'ArrayRef[Str]',
-    is      => 'rw',
-    default => sub { [] }
-);
+sub new {
+    my $class = shift;
 
-has _elements => (
-    isa     => 'ArrayRef[Protocol::Yadis::Document::Service::Element]',
-    is      => 'rw',
-    default => sub { [] }
-);
+    my $self = {@_};
+    bless $self, $class;
+
+    $self->{attrs} ||= [];
+    $self->{_elements} = [];
+
+    return $self;
+}
+
+sub attrs { defined $_[1] ? $_[0]->{attrs} = $_[1] : $_[0]->{attrs} }
 
 sub Type { shift->element('Type') }
 sub URI  { shift->element('URI') }
@@ -32,17 +36,17 @@ sub elements {
     my $self = shift;
 
     if (@_) {
-        $self->_elements([]);
+        $self->{_elements} = [];
 
         foreach my $element (@{$_[0]}) {
-            push @{$self->_elements}, $element;
+            push @{$self->{_elements}}, $element;
         }
     }
     else {
         my @priority =
-          grep { defined $_->attr('priority') } @{$self->_elements};
+          grep { defined $_->attr('priority') } @{$self->{_elements}};
         my @other =
-          grep { not defined $_->attr('priority') } @{$self->_elements};
+          grep { not defined $_->attr('priority') } @{$self->{_elements}};
 
         my @sorted =
           sort { $a->attr('priority') cmp $b->attr('priority') } @priority;
@@ -152,6 +156,10 @@ This is a service object for L<Protocol::Yadis::Document>.
 
 =head1 METHODS
 
+=head2 C<new>
+
+Creates a new L<Protocol::Yadis::Document::Services> instance.
+
 =head2 C<element>
 
 Gets element by name.
@@ -168,9 +176,13 @@ Shortcut for getting URI element.
 
 Gets/sets elements.
 
-=head2 C<attr>
+=head2 C<attrs>
 
 Gets/sets service attributes.
+
+=head2 C<attr>
+
+Gets/sets service attribute.
 
 =head2 C<to_string>
 
