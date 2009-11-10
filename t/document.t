@@ -1,15 +1,52 @@
-use Test::More tests => 37;
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Test::More tests => 41;
 
 use Protocol::Yadis::Document;
 
 my $d = Protocol::Yadis::Document->parse;
-ok(not defined);
+ok(not defined $d);
 
 $d = Protocol::Yadis::Document->parse('');
-ok(not defined);
+ok(not defined $d);
 
 $d = Protocol::Yadis::Document->parse('<asdasd');
-ok(not defined);
+ok(not defined $d);
+
+$d = Protocol::Yadis::Document->parse(<<'');
+<?xml version="1.0" encoding="UTF-8"?>
+<foo xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
+ <XRD>
+ </XRD>
+</foo>
+
+ok(not defined $d);
+
+$d = Protocol::Yadis::Document->parse(<<'');
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)">
+</xrds:XRDS>
+
+ok(not defined $d);
+
+$d = Protocol::Yadis::Document->parse(<<'');
+<?xml version="1.0" encoding="UTF-8"?>
+<XRDS xmlns="xri://$xrds">
+ <XRD xmlns="xri://$xrd*($v*2.0)">
+  <Service>
+   <Type> http://lid.netmesh.org/sso/2.0 </Type>
+  </Service>
+  <Service>
+   <Type> http://lid.netmesh.org/sso/1.0 </Type>
+  </Service>
+ </XRD>
+</XRDS>
+
+is($d->services->[0]->Type->[0]->content, 'http://lid.netmesh.org/sso/2.0');
+is($d->services->[1]->Type->[0]->content, 'http://lid.netmesh.org/sso/1.0');
 
 $d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>

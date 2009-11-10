@@ -61,10 +61,13 @@ sub parse {
 
     # Get XRDS
     my $xrds = shift @{$doc->getElementsByTagName('xrds:XRDS')};
+    $xrds = shift @{$doc->getElementsByTagName('XRDS')} unless $xrds;
+    return unless $xrds;
 
     # Get /last/ XRD
     my @xrd = $xrds->getElementsByTagName('XRD');
     my $xrd = $xrd[-1];
+    return unless $xrd;
 
     my $services = [];
     my @services = $xrd->getElementsByTagName('Service');
@@ -145,7 +148,6 @@ Protocol::Yadis::Document - Protocol::Yadis document object
           </Service>
          </XRD>
         </xrds:XRDS>
-    EOD
 
     my $services = $d->services;
 
