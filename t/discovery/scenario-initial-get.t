@@ -135,8 +135,6 @@ my $y = Protocol::Yadis->new(
     }
 );
 
-use Data::Dumper;
-
 # !200 -> FAIL
 $y->discover('1' => sub { ok(not defined $_[1]) });
 

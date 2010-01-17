@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 41;
+use Test::More tests => 42;
 
 use Protocol::Yadis::Document;
 
@@ -31,6 +31,17 @@ $d = Protocol::Yadis::Document->parse(<<'');
 </xrds:XRDS>
 
 ok(not defined $d);
+
+$d = Protocol::Yadis::Document->parse(<<'');
+<?xml version="1.0" encoding="UTF-8"?>
+<xrds:XRDS xmlns:xrds="xri://$xrds" xmlns="xri://$xrd*($v*2.0)"><XRD>
+    <Service>
+        <Type>http://openid.net/signon/1.0</Type>
+        <URI>http://www.livejournal.com/openid/server.bml</URI>
+    </Service>
+</XRD></xrds:XRDS>
+
+is($d->services->[0]->Type->[0]->content, 'http://openid.net/signon/1.0');
 
 $d = Protocol::Yadis::Document->parse(<<'');
 <?xml version="1.0" encoding="UTF-8"?>
