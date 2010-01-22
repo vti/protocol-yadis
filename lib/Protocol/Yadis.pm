@@ -5,9 +5,11 @@ use warnings;
 
 require Carp;
 
-our $VERSION = '0.501';
-
 use constant DEBUG => $ENV{PROTOCOL_YADIS_DEBUG} || 0;
+
+use Protocol::Yadis::Document;
+
+our $VERSION = '0.900101';
 
 sub new {
     my $class = shift;
@@ -26,8 +28,6 @@ sub new {
 sub http_req_cb { shift->{http_req_cb} }
 sub head_first  { shift->{head_first} }
 sub error       { @_ > 1 ? $_[0]->{error} = $_[1] : $_[0]->{error} }
-
-use Protocol::Yadis::Document;
 
 sub discover {
     my $self = shift;
@@ -164,7 +164,7 @@ sub _initial_get_req {
                 my ($head) = ($body =~ m/<\s*head\s*>(.*?)<\/\s*head\s*>/is);
 
                 unless ($head) {
-                    warn 'No <head> was found' if DEBUG;
+                    $self->error('No <head> was found');
                     return $cb->($self);
                 }
 
