@@ -311,21 +311,24 @@ Protocol::Yadis - Asynchronous Yadis implementation
 
             ...
 
-            $cb->($url, $status, $headers, $body);
+            $cb->($url, $status, $headers, $body, $error);
         }
     );
 
     $y->discover(
         $url => sub {
-            my ($self, $document) = @_;
+            my ($self, $document, $error) = @_;
 
             if ($document) {
                 my $services = $document->services;
 
                 ...
             }
+            elsif ($error) {
+                die "Error: $error";
+            }
             else {
-                die 'error';
+                die "Nothing found";
             }
         }
     );
@@ -344,7 +347,7 @@ This is an asynchronous lightweight but full Yadis implementation.
 
             ...
 
-            $cb->($url, $status, $headers, $body);
+            $cb->($url, $status, $headers, $body, $error);
         }
     );
 
@@ -381,6 +384,8 @@ Arguments that must be passed to the response callback
 
 =item * B<body> response body
 
+=item * B<error> internal error
+
 =back
 
 =head2 C<head_first>
@@ -397,7 +402,7 @@ Creates a new L<Protocol::Yadis> instance.
 
     $y->discover(
         $url => sub {
-            my ($self, $document) = @_;
+            my ($self, $document, $error) = @_;
 
             if ($document) {
                 my $services = $document->services;
@@ -412,13 +417,10 @@ Creates a new L<Protocol::Yadis> instance.
 
 Discover Yadis document at the url provided. Callback is called when discovery
 was finished. If no document was passed there was an error during discovery.
+Error is passed as the third parameter.
 
 If a Yadis document was discovered you get L<Protocol::Yadis::Document> instance
 containing all the services.
-
-=head2 C<error>
-
-Returns last error.
 
 =head1 AUTHOR
 
