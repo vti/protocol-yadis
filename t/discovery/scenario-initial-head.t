@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 3;
+use Test::More tests => 8;
 
 use Protocol::Yadis;
 
@@ -12,6 +12,7 @@ my $y = Protocol::Yadis->new(
     http_req_cb => sub {
         my ($url, $method, $headers, $body, $cb) = @_;
 
+        my $error;
         my $status = 200;
         $body    = '';
         $headers = {};
@@ -43,16 +44,50 @@ my $y = Protocol::Yadis->new(
 </xrds:XRDS>
 
         }
+        elsif ($url eq 'error') {
+            $error = 'Error';
+        }
 
-        $cb->($url, $status, $headers, $body);
+        $cb->($url, $status, $headers, $body, $error);
+    }
+);
+
+# Error -> FAIL
+$y->discover(
+    'error' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'Error');
     }
 );
 
 # !200 -> FAIL
-$y->discover('1' => sub {ok(not defined $_[1])});
+$y->discover(
+    '1' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'Wrong response status');
+    }
+);
 
 # 200 -> X-XRDS-Location -> SECOND
-$y->discover('2' => sub {ok($_[1])});
+$y->discover(
+    '2' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok($doc);
+        ok(not defined $error);
+    }
+);
 
 # 200 -> !X-XRDS-Location -> INITIAL
-$y->discover('3' => sub {ok($_[1])});
+$y->discover(
+    '3' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok($doc);
+        ok(not defined $error);
+    }
+);

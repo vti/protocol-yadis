@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 4;
+use Test::More tests => 10;
 
 use Protocol::Yadis;
 
@@ -11,6 +11,7 @@ my $y = Protocol::Yadis->new(
     http_req_cb => sub {
         my ($url, $method, $headers, $body, $cb) = @_;
 
+        my $error;
         my $status = 200;
         $body    = '';
         $headers = {};
@@ -41,19 +42,60 @@ my $y = Protocol::Yadis->new(
         elsif ($url eq '4') {
             $body = 'foobar';
         }
+        elsif ($url eq 'error') {
+            $error = 'Error';
+        }
 
-        $cb->($url, $status, $headers, $body);
+        $cb->($url, $status, $headers, $body, $error);
+    }
+);
+
+# Error -> FAIL
+$y->discover(
+    'error' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'Error');
     }
 );
 
 # !200 -> FAIL
-$y->discover('1' => sub { ok(not defined $_[1]) });
+$y->discover(
+    '1' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'Wrong response status');
+    }
+);
 
 # 200 -> !document -> FAIL
-$y->discover('2' => sub { ok(not defined $_[1]) });
+$y->discover(
+    '2' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'No document was found');
+    }
+);
 
 # 200 -> document -> yadis -> OK
-$y->discover('3' => sub { ok($_[1]) });
+$y->discover(
+    '3' => sub {
+        my ($y, $doc, $error) = @_;
 
-# 200 -> document -> !yadis -> OK
-$y->discover('4' => sub { ok(not defined $_[1]) });
+        ok($doc);
+        ok(not defined $error);
+    }
+);
+
+# 200 -> document -> !yadis -> FAIL
+$y->discover(
+    '4' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'No <head> was found');
+    }
+);

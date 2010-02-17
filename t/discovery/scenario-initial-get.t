@@ -3,13 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More tests => 22;
 
 use Protocol::Yadis;
 
 my $y = Protocol::Yadis->new(
     http_req_cb => sub {
         my ($url, $method, $headers, $body, $cb) = @_;
+
+        my $error = '';
 
         my $status = 200;
         $body    = '';
@@ -130,37 +132,118 @@ my $y = Protocol::Yadis->new(
 </xrds:XRDS>
 
         }
+        elsif ($url eq 'error') {
+            $error = 'Error';
+        }
 
-        $cb->($url, $status, $headers, $body);
+        $cb->($url, $status, $headers, $body, $error);
+    }
+);
+
+# Error -> FAIL
+$y->discover(
+    'error' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'Error');
     }
 );
 
 # !200 -> FAIL
-$y->discover('1' => sub { ok(not defined $_[1]) });
+$y->discover(
+    '1' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'Wrong response status');
+    }
+);
 
 # 200 -> X-XRDS-Location -> document -> yadis -> OK
-$y->discover('2' => sub { ok($_[1]) });
+$y->discover(
+    '2' => sub {
+        my ($y, $doc, $error) = @_;
 
-# 200 -> X-XRDS-Location -> document -> !yadis -> FAIL
-$y->discover('3' => sub { ok($_[1]) });
+        ok($doc);
+        ok(not defined $error);
+    }
+);
+
+# 200 -> X-XRDS-Location -> document -> !yadis -> SECOND
+$y->discover(
+    '3' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok($doc);
+        ok(not defined $error);
+    }
+);
 
 # 200 -> X-XRDS-Location -> !document -> SECOND
-$y->discover('4' => sub { ok($_[1]) });
+$y->discover(
+    '4' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok($doc);
+        ok(not defined $error);
+    }
+);
 
 # 200 -> !X-XRDS-Location -> !document -> FAIL
-$y->discover('5' => sub { ok(not defined $_[1]) });
+$y->discover('5' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'No document was found');
+    });
 
 # 200 -> !X-XRDS-Location -> document -> yadis -> OK
-$y->discover('6' => sub { ok($_[1]) });
+$y->discover(
+    '6' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok($doc);
+        ok(not defined $error);
+    }
+);
 
 # 200 -> !X-XRDS-Location -> document -> html -> head -> meta -> SECOND
-$y->discover('7' => sub { ok($_[1]) });
+$y->discover(
+    '7' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok($doc);
+        ok(not defined $error);
+    }
+);
 
 # 200 -> !X-XRDS-Location -> document -> html -> head -> !meta -> FAIL
-$y->discover('8' => sub { ok(not defined $_[1]) });
+$y->discover(
+    '8' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'No <meta> was found');
+    }
+);
 
 # 200 -> !X-XRDS-Location -> document -> html -> !head -> FAIL
-$y->discover('9' => sub { ok(not defined $_[1]) });
+$y->discover(
+    '9' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'No <head> was found');
+    }
+);
 
 # 200 -> !X-XRDS-Location -> document -> !html && !yadis -> FAIL
-$y->discover('10' => sub { ok(not defined $_[1]); });
+$y->discover(
+    '10' => sub {
+        my ($y, $doc, $error) = @_;
+
+        ok(not defined $doc);
+        is($error, 'No <head> was found');
+    }
+);
