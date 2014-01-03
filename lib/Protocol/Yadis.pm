@@ -9,7 +9,7 @@ use constant DEBUG => $ENV{PROTOCOL_YADIS_DEBUG} || 0;
 
 use Protocol::Yadis::Document;
 
-our $VERSION = '0.990102';
+our $VERSION = '1.00';
 
 sub new {
     my $class = shift;
