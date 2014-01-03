@@ -53,7 +53,7 @@ sub to_string {
     my $self = shift;
 
     my $name = $self->name;
-    return unless $name;
+    return '' unless $name;
 
     my $attrs = '';
     for (my $i = 0; $i < @{$self->attrs}; $i += 2) {
