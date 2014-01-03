@@ -17,5 +17,6 @@ WriteMakefile(
         'XML::LibXML' => '2.0108'
     },
     dist  => {COMPRESS => 'gzip -9f', SUFFIX => 'gz'},
+    test  => {TESTS    => 't/*.t t/*/*.t'},
     clean => {FILES    => 'Protocol-Yadis-*'}
 );
